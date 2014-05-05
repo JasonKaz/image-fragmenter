@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="assets/foundation-5.2.2/css/normalize.css"/>
+    <link rel="stylesheet" href="assets/foundation-5.2.2/css/foundation.min.css"/>
+    <style>
+        .test-image {
+            position: relative;
+        }
+
+        .test-image .fragment {
+            position: absolute;
+            margin: 0;
+            padding: 0;
+
+            -webkit-transition: top ease-in-out .2s, left ease-in-out .2s, -webkit-transform ease-in-out .2s;
+            -moz-transition: top ease-in-out .2s, left ease-in-out .2s;
+            -o-transition: top ease-in-out .2s, left ease-in-out .2s;
+            -ms-transition: top ease-in-out .2s, left ease-in-out .2s;
+            transition: top ease-in-out .2s, left ease-in-out .2s, -webkit-transform ease-in-out .2s;
+        }
+    </style>
+</head>
+<body>
+<div class="row">
+    <div class="small-12 columns">
+        <h1>Image Fragmenter</h1>
+    </div>
+</div>
+<div class="row">
+    <div class="small-4 columns">
+        <div class="row">
+            <div class="small-12 columns">
+                <form>
+                    <div class="row">
+                        <div class="small-6 columns">
+                            <label>Grid dimensions<input type="text" id="grid-x" size="3"/></label>
+                        </div>
+                        <div class="small-6 columns">
+                            <label>&nbsp;<input type="text" id="grid-y" size="3"/></label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="row">
+            <div class="small-12 columns">
+                <button type="button" id="preview">Preview</button>
+            </div>
+        </div>
+    </div>
+    <div class="small-8 columns">
+        <canvas id="myCanvas"></canvas>
+    </div>
+</div>
+<div class="row">
+    <div class="small-4 columns">
+        <div class="row">
+            <div class="small-6 columns">
+                <button type="button" id="random" disabled>Randomize</button>
+            </div>
+            <div class="small-6 columns">
+                <button type="button" id="restore" disabled>Restore</button>
+            </div>
+        </div>
+    </div>
+    <div class="small-8 columns">
+        <canvas id="outputCanvas" style="display:none"></canvas>
+        <div id="preview-target"></div>
+    </div>
+</div>
+<div class="row">
+    <div class="small-4 columns">
+        <button type="button" id="copy" disabled>Select Markup</button>
+    </div>
+    <div class="small-8 columns">
+        <textarea id="markup-output" cols="30" rows="10" readonly></textarea>
+    </div>
+</div>
+<footer class="row">
+    <div class="small-12 columns">
+        <hr/>
+        <div class="row">
+            <div class="small-6 columns">
+
+            </div>
+            <div class="small-6 columns">
+
+            </div>
+        </div>
+    </div>
+</footer>
+
+<script src="assets/jquery-2.1.1.min.js"></script>
+<script src="assets/foundation-5.2.2/js/foundation.min.js"></script>
+<script src="assets/js/Fragmenter.js"></script>
+<script>
+    var $randomize = $("#random"),
+            $restore = $("#restore"),
+            $copy = $("#copy"),
+            $outputMarkup=$("#markup-output");
+
+    $("#preview").on("click", function () {
+        $outputMarkup.val(fragmenter.preview($("#preview-target")[0]));
+
+        $randomize.prop("disabled", false);
+        $restore.prop("disabled", false);
+        $copy.prop("disabled", false);
+    });
+
+    $randomize.on("click", function () {
+        randomBreak();
+    });
+
+    $restore.on("click", function () {
+        restore();
+    });
+
+    $copy.on("click", function(){
+        $outputMarkup.select();
+    });
+
+    function randomBreak() {
+        var n, $me;
+
+        $(".fragment").each(function () {
+            $me = $(this);
+
+            n = Math.random() > .5 ? 1 : -1;
+
+            $me.css({
+                "-webkit-transform": "rotate(" + Math.floor(Math.random() * 10 * n) + "deg)",
+                left: parseInt($me.css("left"), 10) + Math.random() * 8 * n,
+                top: parseInt($me.css("top"), 10) + Math.random() * 8 * n
+            });
+        });
+    }
+
+    function restore() {
+        var $me;
+
+        $(".fragment").each(function () {
+            $me = $(this);
+
+            $me.css({
+                "-webkit-transform": "",
+                left: $me.data("left"),
+                top: $me.data("top")
+            });
+        });
+    }
+
+    var fragmenter = new Fragmenter('sample-text.png');
+</script>
+</body>
+</html>

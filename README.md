@@ -1,0 +1,1 @@
+A tool to generate an HTML5 fragmented text effect

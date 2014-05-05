@@ -1,0 +1,243 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <style>
+        body {
+            margin: 0px;
+            padding: 0px;
+        }
+
+        #left {
+            float: left;
+            width: 200px;
+        }
+
+        #right {
+            float: left;
+        }
+
+        .test-image {
+            position: relative;
+        }
+
+        .test-image .fragment {
+            position: absolute;
+            margin: 0;
+            padding: 0;
+
+            -webkit-transition: top ease-in-out .2s, left ease-in-out .2s, -webkit-transform ease-in-out .2s;
+            -moz-transition: top ease-in-out .2s, left ease-in-out .2s;
+            -o-transition: top ease-in-out .2s, left ease-in-out .2s;
+            -ms-transition: top ease-in-out .2s, left ease-in-out .2s;
+            transition: top ease-in-out .2s, left ease-in-out .2s, -webkit-transform ease-in-out .2s;
+        }
+    </style>
+</head>
+<body>
+
+<div style="overflow:auto">
+    <div id="left">
+        <div>
+            Grid: <input type="text" id="grid-x" size="3"/> x <input type="text" id="grid-y" size="3"/>
+        </div>
+        <div>
+            <button type="button" id="preview">Preview</button>
+        </div>
+        <div>
+            <button type="button" id="random">Randomize</button>
+            <button type="button" id="restore">Restore</button>
+        </div>
+    </div>
+    <div id="right">
+        <canvas id="myCanvas"></canvas>
+        <canvas id="outputCanvas" style="display:none"></canvas>
+    </div>
+</div>
+<div id="preview-target"></div>
+<textarea id="markup-output" cols="30" rows="10"></textarea>
+<script src="jquery-2.1.1.min.js"></script>
+<script>
+    document.getElementById("preview").addEventListener("click", function () {
+        document.getElementById("markup-output").value = fragmenter.preview(document.getElementById("preview-target"));
+    });
+
+    $("#random").on("click", function () {
+        randomBreak();
+    });
+
+    $("#restore").on("click", function () {
+        restore();
+    });
+
+    var App = (function (d, Math) {
+        function App(image) {
+            var self = this;
+
+            self.drawGrid = true;
+
+            self.canvas = d.getElementById('myCanvas');
+
+            self.output = d.getElementById("outputCanvas");
+            self.outputContext = self.output.getContext("2d");
+
+            self.imageObj = new Image();
+            self.gridX = self.gridY = self.gridW = self.gridH = 0;
+
+            self.imageObj.onload = function () {
+                self.gridW = self.imageObj.width;
+                self.gridH = self.imageObj.height;
+
+                self.gridX = 20;
+                self.gridY = 15;
+
+                d.getElementById("grid-x").value = self.gridX;
+                d.getElementById("grid-y").value = self.gridY;
+
+                self.canvas.width = self.gridW;
+                self.canvas.height = self.gridH;
+
+                self.context = self.canvas.getContext('2d');
+
+                self.updateCanvas();
+            };
+
+            self.imageObj.src = image;
+
+            d.getElementById("grid-x").addEventListener("change", function () {
+                self.gridX = Math.max(this.value, 10);
+
+                self.updateCanvas();
+            });
+
+            d.getElementById("grid-y").addEventListener("change", function () {
+                self.gridY = Math.max(this.value, 10);
+
+                self.updateCanvas();
+            });
+        }
+
+        App.prototype.updateCanvas = function () {
+            var self = this,
+                    xx, yy;
+
+            self.gridX = Math.max(self.gridX, 10);
+            self.gridY = Math.max(self.gridY, 10);
+
+            self.context.clearRect(0, 0, self.canvas.width, self.canvas.height);
+            self.context.drawImage(self.imageObj, 0, 0);
+
+            if (self.drawGrid === true) {
+                for (yy = 0; yy < self.gridH; yy += self.gridY) {
+                    for (xx = 0; xx < self.gridW; xx += self.gridX) {
+                        self.context.strokeRect(xx, yy, self.gridX, self.gridY);
+                    }
+                }
+            }
+        };
+
+        App.prototype.getBase64 = function (imageData) {
+            var self = this;
+
+            self.output.width = self.gridX;
+            self.output.height = self.gridY;
+
+            self.outputContext.putImageData(imageData, 0, 0);
+
+            return self.output.toDataURL("image/png");
+        };
+
+        App.prototype.getCellData = function (x, y) {
+            return this.getBase64(this.context.getImageData(x, y, this.gridX, this.gridY));
+        };
+
+        App.prototype.getCellMarkup = function (x, y) {
+            var div = d.createElement("div"),
+                    img = new Image(),
+                    base64Data = this.getCellData(x, y);
+
+
+            img.src = base64Data;
+
+            div.innerHTML = img.outerHTML;
+            div.className = "fragment";
+
+            div.setAttribute("style", "left:" + x + "px;top:" + y + "px");
+            div.dataset.left = x;
+            div.dataset.top = y;
+
+            return div.outerHTML;
+        };
+
+        App.prototype.getImageMarkup = function () {
+            var self = this,
+                    output = d.createElement("div"),
+                    images = "",
+                    yy, xx;
+
+            self.drawGrid = false;
+            self.updateCanvas();
+
+            for (yy = 0; yy < self.gridH; yy += self.gridY) {
+                for (xx = 0; xx < self.gridW; xx += self.gridX) {
+                    images += self.getCellMarkup(xx, yy);
+                }
+            }
+
+            self.drawGrid = true;
+            self.updateCanvas();
+
+            output.innerHTML = images;
+
+            output.setAttribute("style", "width:" + self.gridW + "px;height:" + self.gridH + "px");
+            output.width = self.gridW;
+            output.height = self.gridH;
+            output.className = "test-image";
+
+            return output.outerHTML;
+        };
+
+        App.prototype.preview = function (target) {
+            var markup = this.getImageMarkup();
+
+            target.innerHTML = markup;
+
+            return markup;
+        };
+
+        return App;
+    })(document, Math);
+
+    function randomBreak() {
+        var n, $me;
+
+        $(".fragment").each(function () {
+            $me = $(this);
+
+            n = Math.random() > .5 ? 1 : -1;
+
+            $me.css({
+                "-webkit-transform": "rotate(" + Math.floor(Math.random() * 10 * n) + "deg)",
+                left: parseInt($me.css("left"), 10) + Math.random() * 8 * n,
+                top: parseInt($me.css("top"), 10) + Math.random() * 8 * n
+            });
+        });
+    }
+
+    function restore() {
+        var $me;
+
+        $(".fragment").each(function () {
+            $me = $(this);
+
+            $me.css({
+                "-webkit-transform": "",
+                left: $me.data("left"),
+                top: $me.data("top")
+            });
+        });
+    }
+
+    var fragmenter = new App('sample-text.png');
+</script>
+</body>
+</html>
